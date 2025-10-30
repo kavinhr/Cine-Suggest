@@ -4,6 +4,25 @@ A Flask-based web application that provides movie recommendations using machine 
 The system uses the TMDB dataset to suggest similar movies based on user input.
 
 ---
+## 📊 Dataset Setup
+
+This project uses the TMDB 5000 Movies and Credits datasets for generating movie recommendations.
+
+Since the files are large, they are stored separately under the **Releases** section of this repository.
+
+You can download them directly using the links below:
+
+- [tmdb_5000_movies.csv](https://github.com/kavinhr/Cine-Suggest/releases/download/v1.0/tmdb_5000_movies.csv)
+- [tmdb_5000_credits.csv](https://github.com/kavinhr/Cine-Suggest/releases/download/v1.0/tmdb_5000_credits.csv)
+
+### 🧱 Setup Instructions
+
+1. Download both CSV files from the links above.  
+2. Place them in the **root directory** of the project (same folder as `app.py`).  
+3. Run the application:
+   ```bash
+   python app.py
+
 
 ## 🌐 Live Demo
 
