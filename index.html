@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Movie Recommendations</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial;
+            margin: 20px;
+            background-image: url('https://miro.medium.com/v2/resize:fit:1400/1*kNj8AqQ2YA8QmzVAGbo_bg.jpeg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-repeat: no-repeat;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .search-box {
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            width: 70%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .suggestions {
+            border: 1px solid #ccc;
+            max-height: 150px;
+            overflow-y: auto;
+            display: none;
+            background: white;
+        }
+        .suggestion {
+            padding: 8px;
+            cursor: pointer;
+        }
+        .suggestion:hover {
+            background-color: #f0f0f0;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+        .error {
+            color: red;
+            text-align: center;
+            padding: 10px;
+            display: none;
+        }
+        .results {
+            margin-top: 30px;
+            display: none;
+        }
+        .movie {
+            border: 1px solid #ddd;
+            margin: 10px 0;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .movie-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+        .movie-info {
+            color: #666;
+            margin: 5px 0;
+        }
+        .similarity {
+            background-color: #e7f3ff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 14px;
+        }
+        .overview {
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Movie Recommendation System</h1>
+        <p style="text-align: center; color: #666;">Choose the movie from the dropdown menu</p>
+        <div class="search-box">
+            <input type="text" id="movieInput" placeholder="Enter movie name (e.g. The Dark Knight, Avatar)">
+            <button onclick="getRecommendations()">Get Recommendations</button>
+            <div id="suggestions" class="suggestions"></div>
+        </div>
+        <div id="loading" class="loading">
+            <p>Loading recommendations...</p>
+        </div>
+        <div id="error" class="error"></div>
+        <div id="results" class="results">
+            <h3>Recommended Movies:</h3>
+            <div id="movieList"></div>
+        </div>
+    </div>
+    <script>
+        var searchTimer;
+        document.getElementById('movieInput').addEventListener('input', function() {
+            clearTimeout(searchTimer);
+            var query=this.value;
+            if (query.length<2) {
+                hideSuggestions();
+                return;
+            }
+            searchTimer=setTimeout(function() {
+                searchMovies(query);
+            }, 300);
+        });
+        function searchMovies(query) {
+            fetch('/api/search?q=' + encodeURIComponent(query))
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    showSuggestions(data.movies);
+                })
+                .catch(function(error) {
+                    console.log('Error:', error);
+                });
+        }
+        function showSuggestions(movies) {
+            var suggestionsDiv=document.getElementById('suggestions');
+            suggestionsDiv.innerHTML='';
+            if (movies.length===0) {
+                hideSuggestions();
+                return;
+            }
+            for (var index=0; index<movies.length; index++) {
+                var title=movies[index];
+                var suggestionDiv=document.createElement('div');
+                suggestionDiv.className='suggestion';
+                suggestionDiv.textContent=title;
+                suggestionDiv.onclick=(function(movieTitle) {
+                    return function() {
+                        document.getElementById('movieInput').value=movieTitle;
+                        hideSuggestions();
+                    };
+                })(title);
+                suggestionsDiv.appendChild(suggestionDiv);
+            }
+            suggestionsDiv.style.display='block';
+        }
+        function hideSuggestions() {
+            document.getElementById('suggestions').style.display='none';
+        }
+        function getRecommendations() {
+            var movieName=document.getElementById('movieInput').value.trim();
+            if (!movieName) {
+                showError('Please enter a movie name');
+                return;
+            }
+            document.getElementById('loading').style.display='block';
+            document.getElementById('results').style.display='none';
+            document.getElementById('error').style.display='none';
+            fetch('/api/recommend?movie=' + encodeURIComponent(movieName))
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    document.getElementById('loading').style.display='none';
+                    if (data.error) {
+                        showError(data.error);
+                    } else {
+                        showResults(data.recommendations);
+                    }
+                })
+                .catch(function(error) {
+                    document.getElementById('loading').style.display='none';
+                    showError('Failed to get recommendations');
+                });
+        }
+        function showResults(movies) {
+            var movieListDiv=document.getElementById('movieList');
+            movieListDiv.innerHTML='';
+            for (var index=0; index<movies.length; index++) {
+                var movie=movies[index];
+                var movieDiv=document.createElement('div');
+                movieDiv.className='movie';
+                var htmlContent='';
+                htmlContent+='<div class="movie-title">' + (index+1) + '. ' + movie.title + ' (' + movie.year + ')</div>';
+                htmlContent+='<div class="movie-info">';
+                htmlContent+='Genres: ' + movie.genres + ' | ';
+                htmlContent+='Rating: ' + movie.rating + '/10 | ';
+                htmlContent+='<span class="similarity">Similarity: ' + movie.similarity + '%</span>';
+                htmlContent+='</div>';
+                htmlContent+='<div class="overview">' + movie.overview + '</div>';
+                movieDiv.innerHTML=htmlContent;
+                movieListDiv.appendChild(movieDiv);
+            }
+            document.getElementById('results').style.display='block';
+        }
+        function showError(message) {
+            var errorDiv=document.getElementById('error');
+            errorDiv.textContent=message;
+            errorDiv.style.display='block';
+        }
+        document.getElementById('movieInput').addEventListener('keypress', function(event) {
+            if (event.key==='Enter') {
+                hideSuggestions();
+                getRecommendations();
+            }
+        });
+        document.addEventListener('click', function(event) {
+            var searchBox=event.target.closest('.search-box');
+            if (!searchBox) {
+                hideSuggestions();
+            }
+        });
+    </script>
+</body>
+</html>
